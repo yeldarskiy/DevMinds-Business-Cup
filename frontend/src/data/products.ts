@@ -39,6 +39,10 @@ export const PRODUCTS: Product[] = [
 
 const PRODUCT_MAP = new Map(PRODUCTS.map((p) => [p.id, p]))
 
+export function registerBackendProducts(products: Product[]): void {
+  for (const product of products) PRODUCT_MAP.set(product.id, product)
+}
+
 export function getProduct(id: string): Product | undefined {
   return PRODUCT_MAP.get(id)
 }

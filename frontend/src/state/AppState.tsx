@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { averagePrice, cheapestQuote } from '../data/prices'
 import { DEMO_BASKET, getProduct } from '../data/products'
+import { productService } from '../services/productService'
+import type { ProductWithPrices } from '../types'
 import type { BasketItem, BasketLine, Receipt, ShoppingPlan } from '../types'
 import { round2 } from '../utils/format'
 import { readStorage, writeStorage } from '../utils/storage'
@@ -41,6 +43,28 @@ const clampQuantity = (q: number) => Math.max(1, Math.min(MAX_QUANTITY, Math.rou
 
 export function AppStateProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<PersistedState>(() => ({ ...EMPTY, ...readStorage<Partial<PersistedState>>(STORAGE_KEY, EMPTY) }))
+  const [catalog, setCatalog] = useState<ProductWithPrices[]>([])
+
+  useEffect(() => {
+    let mounted = true
+    productService.getProducts().then(({ data, source }) => {
+      if (!mounted) return
+      setCatalog(data)
+      if (source === 'api') {
+        setState((current) => {
+          const valid = new Set(data.map((product) => product.id))
+          const migrated = current.basket.flatMap((item) => {
+            if (valid.has(item.productId)) return [item]
+            const local = getProduct(item.productId)
+            const matching = local && data.find((product) => product.name.toLowerCase().includes(local.name.toLowerCase()))
+            return matching ? [{ ...item, productId: matching.id }] : []
+          })
+          return { ...current, basket: migrated, plan: current.plan?.items.every((item) => valid.has(item.productId)) ? current.plan : null }
+        })
+      }
+    })
+    return () => { mounted = false }
+  }, [])
 
   useEffect(() => {
     writeStorage(STORAGE_KEY, state)
@@ -62,7 +86,15 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
   const removeFromBasket = useCallback((productId: string) => setState((s) => ({ ...s, basket: s.basket.filter((i) => i.productId !== productId) })), [])
   const clearBasket = useCallback(() => setState((s) => ({ ...s, basket: [] })), [])
-  const loadDemoBasket = useCallback(() => setState((s) => ({ ...s, basket: DEMO_BASKET.map((i) => ({ ...i })) })), [])
+  const loadDemoBasket = useCallback(() => setState((s) => ({
+    ...s,
+    basket: DEMO_BASKET.flatMap((item) => {
+      if (!catalog.some((p) => p.id.startsWith('backend:'))) return [{ ...item }]
+      const example = getProduct(item.productId)
+      const found = example && catalog.find((p) => p.name.toLowerCase().includes(example.name.toLowerCase()))
+      return found ? [{ productId: found.id, quantity: item.quantity }] : []
+    }),
+  })), [catalog])
   const savePlan = useCallback((plan: ShoppingPlan) => setState((s) => ({ ...s, plan })), [])
   const saveReceipt = useCallback((receipt: Receipt) => setState((s) => ({ ...s, receipts: [receipt, ...s.receipts] })), [])
   const resetDemo = useCallback(() => setState(EMPTY), [])
@@ -70,7 +102,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const basketLines = useMemo<BasketLine[]>(
     () =>
       state.basket.flatMap((item) => {
-        const product = getProduct(item.productId)
+        const product = catalog.find((entry) => entry.id === item.productId) ?? getProduct(item.productId)
         const lowest = cheapestQuote(item.productId)
         if (!product || !lowest) return []
         return [
@@ -86,7 +118,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
           },
         ]
       }),
-    [state.basket],
+    [state.basket, catalog],
   )
 
   const value = useMemo<AppStateValue>(

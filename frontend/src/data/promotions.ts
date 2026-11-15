@@ -42,6 +42,12 @@ export const PROMOTIONS: Promotion[] = SEEDS.map((s) => {
   }
 })
 
+const BACKEND_PROMOTIONS = new Map<string, Promotion[]>()
+
+export function registerBackendPromotions(productId: string, promotions: Promotion[]): void {
+  BACKEND_PROMOTIONS.set(productId, promotions)
+}
+
 export function promotionsFor(productId: string): Promotion[] {
-  return PROMOTIONS.filter((p) => p.productId === productId)
+  return BACKEND_PROMOTIONS.get(productId) ?? PROMOTIONS.filter((p) => p.productId === productId)
 }

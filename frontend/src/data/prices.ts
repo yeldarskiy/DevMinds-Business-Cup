@@ -66,13 +66,20 @@ export const PRICE_QUOTES: PriceQuote[] = PRODUCTS.flatMap((p) =>
 )
 
 const QUOTE_MAP = new Map(PRICE_QUOTES.map((q) => [`${q.productId}@${q.storeId}`, q]))
+const BACKEND_QUOTES = new Map<string, PriceQuote[]>()
+
+export function registerBackendQuotes(productId: string, quotes: PriceQuote[]): void {
+  BACKEND_QUOTES.set(productId, quotes)
+  for (const quote of quotes) QUOTE_MAP.set(`${quote.productId}@${quote.storeId}`, quote)
+}
 
 export function getQuote(productId: string, storeId: StoreId): PriceQuote | undefined {
   return QUOTE_MAP.get(`${productId}@${storeId}`)
 }
 
 export function quotesFor(productId: string): PriceQuote[] {
-  return PRICE_QUOTES.filter((q) => q.productId === productId && q.availability !== 'out_of_stock')
+  const quotes = BACKEND_QUOTES.get(productId) ?? PRICE_QUOTES.filter((q) => q.productId === productId)
+  return quotes.filter((q) => q.availability !== 'out_of_stock')
 }
 
 /** Cheapest available quote for a product. */

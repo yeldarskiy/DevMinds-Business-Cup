@@ -1,32 +1,62 @@
+import { createWorker } from 'tesseract.js'
 import { simulatedReceiptItems } from '../data/receipts'
+import { storeName } from '../data/stores'
 import type { ReceiptItem, ShoppingPlan, StoreId } from '../types'
 import { API_ENABLED, api, demoDelay, ENDPOINTS } from './api'
+
+interface BackendReceipt {
+  id: string
+  storeName: string
+  lines: { description: string; price: number; matchedProductId: number | null }[]
+  parsedTotal: number
+}
 
 export interface ScanResult {
   storeId: StoreId
   purchasedAt: string
   items: ReceiptItem[]
-  /** True when the uploaded file was read by the backend OCR service. */
   processedByOcr: boolean
 }
 
 export const receiptService = {
   ocrAvailable: API_ENABLED,
 
-  /** Sends the file to the backend OCR endpoint. */
-  async upload(file: File): Promise<ScanResult> {
-    const form = new FormData()
-    form.append('file', file)
-    const response = await api.post<Omit<ScanResult, 'processedByOcr'>>(ENDPOINTS.receiptUpload, form)
-    return { ...response.data, processedByOcr: true }
+  async upload(file: File, plan: ShoppingPlan): Promise<ScanResult> {
+    if (!file.type.startsWith('image/')) throw new Error('Please upload a JPG or PNG image of your receipt.')
+    if (file.size > 10 * 1024 * 1024) throw new Error('The receipt image must be 10 MB or smaller.')
+    const worker = await createWorker('eng')
+    let text: string
+    try {
+      const result = await worker.recognize(file)
+      text = result.data.text.trim()
+    } finally {
+      await worker.terminate()
+    }
+    if (text.length < 5) throw new Error('No readable receipt text was detected. Try a clearer photo.')
+    const response = await api.post<BackendReceipt>(ENDPOINTS.receiptAnalyze, {
+      storeName: storeName(plan.storeId),
+      receiptText: text.slice(0, 20000),
+    }, { timeout: 25_000 })
+    if (!Array.isArray(response.data.lines) || response.data.lines.length === 0) {
+      throw new Error('The receipt had no recognizable product lines.')
+    }
+    const items: ReceiptItem[] = response.data.lines.map((line, index) => ({
+      id: `${response.data.id}-${index}`,
+      name: line.description,
+      quantity: 1,
+      price: Number(line.price),
+      productId: line.matchedProductId == null ? null : `backend:${line.matchedProductId}`,
+    }))
+    return { storeId: plan.storeId, purchasedAt: new Date().toISOString(), items, processedByOcr: true }
   },
 
-  /**
-   * Demo OCR: without a backend the file is not read. It returns the receipt
-   * the chosen store would print for the saved plan, clearly labeled in the UI.
-   */
   async simulate(plan: ShoppingPlan): Promise<ScanResult> {
-    await demoDelay(1500)
-    return { storeId: plan.storeId, purchasedAt: new Date().toISOString(), items: simulatedReceiptItems(plan), processedByOcr: false }
+    await demoDelay(500)
+    return {
+      storeId: plan.storeId,
+      purchasedAt: new Date().toISOString(),
+      items: simulatedReceiptItems(plan),
+      processedByOcr: false,
+    }
   },
 }

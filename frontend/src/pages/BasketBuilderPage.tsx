@@ -154,7 +154,7 @@ export default function BasketBuilderPage() {
 
   return (
     <div className="pb-24 lg:pb-0">
-      <PageHeader title="Build Basket" description="Add what your family needs. GIMZUP compares every item across five retailers." meta={products.source === 'demo' ? <DemoBadge /> : undefined} />
+      <PageHeader title="Build Basket" description="Add what your family needs. GIMZUP compares every item across five retailers." meta={products.source === 'demo' || products.data?.every((p) => p.quotes.every((q) => q.source === 'demo')) ? <DemoBadge label="Sample retailer prices" /> : undefined} />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_380px]">
         <div className="min-w-0">

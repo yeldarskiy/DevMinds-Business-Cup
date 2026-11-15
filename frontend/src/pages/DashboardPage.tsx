@@ -27,7 +27,7 @@ export default function DashboardPage() {
   const latest = receipts[0]
   const kpis = [
     { label: 'Monthly Spending', value: money(s.monthlySpending), detail: 'This month, all retailers', icon: Wallet, tone: 'text-ink' },
-    { label: 'Monthly Savings', value: money(s.monthlySavings), detail: `${((s.monthlySavings / s.monthlySpending) * 100).toFixed(1)}% of spending`, icon: PiggyBank, tone: 'text-brand-700' },
+    { label: 'Monthly Savings', value: money(s.monthlySavings), detail: `${(s.monthlySpending > 0 ? (s.monthlySavings / s.monthlySpending) * 100 : 0).toFixed(1)}% of spending`, icon: PiggyBank, tone: 'text-brand-700' },
     { label: 'Verified Savings', value: money(s.verifiedSavings), detail: 'Confirmed by receipts', icon: BadgeCheck, tone: 'text-brand-700' },
     { label: 'Smart Shopping Score', value: `${s.shoppingScore} / 100`, detail: 'Savings rate and verification', icon: Gauge, tone: 'text-ink' },
   ]

@@ -20,7 +20,7 @@ import { cn } from '../utils/cn'
 import { longDate, money, round2 } from '../utils/format'
 import { optimizeBasket } from '../utils/optimizer'
 
-const ACCEPT = { 'image/jpeg': ['.jpg', '.jpeg'], 'image/png': ['.png'], 'application/pdf': ['.pdf'] }
+const ACCEPT = { 'image/jpeg': ['.jpg', '.jpeg'], 'image/png': ['.png'] }
 const MAX_SIZE = 10 * 1024 * 1024
 const STEPS = ['Uploading receipt', 'Analyzing receipt', 'Matching items to your plan']
 const STEP_MS = 550
@@ -62,7 +62,7 @@ function UploadArea({ onFile }: { onFile: (file: File) => void }) {
     (accepted: File[], rejected: FileRejection[]) => {
       if (rejected.length > 0) {
         const code = rejected[0].errors[0]?.code
-        toast.error(code === 'file-too-large' ? 'That file is over 10 MB. Try a smaller photo.' : 'Use a JPG, JPEG, PNG or PDF receipt.')
+        toast.error(code === 'file-too-large' ? 'That file is over 10 MB. Try a smaller photo.' : 'Use a JPG, JPEG or PNG receipt.')
         return
       }
       if (accepted[0]) onFile(accepted[0])
@@ -83,7 +83,7 @@ function UploadArea({ onFile }: { onFile: (file: File) => void }) {
       <p className="mt-4 font-semibold">{isDragActive ? 'Drop the receipt to upload' : 'Upload Receipt'}</p>
       <p className="mt-1 text-sm text-muted">Drag and drop a photo or scan of your receipt</p>
       <div className="mt-3 flex gap-1.5">
-        {['PNG', 'JPG', 'PDF'].map((f) => (
+        {['PNG', 'JPG'].map((f) => (
           <Badge key={f}>{f}</Badge>
         ))}
       </div>
@@ -119,11 +119,11 @@ function VerificationContent({ plan, derived }: { plan: ShoppingPlan; derived: b
     setPhase({ kind: 'processing', step: 0, fileName: file.name })
     const ticker = window.setInterval(() => setPhase((p) => (p.kind === 'processing' ? { ...p, step: Math.min(STEPS.length - 1, p.step + 1) } : p)), STEP_MS)
     try {
-      const scan = receiptService.ocrAvailable ? await receiptService.upload(file) : await receiptService.simulate(plan)
+      const scan = receiptService.ocrAvailable ? await receiptService.upload(file, plan) : await receiptService.simulate(plan)
       const receipt = verify(scan, plan, file.name)
       saveReceipt(receipt)
       setPhase({ kind: 'verified', receipt, processedByOcr: scan.processedByOcr })
-      toast.success('Receipt verified', { description: `${money(receipt.verifiedSavings)} in verified savings added to your dashboard.` })
+      toast.success('Receipt verified', { description: `${money(receipt.verifiedSavings)} estimated savings from the receipt and sample comparison prices.` })
     } catch (error) {
       setPhase({ kind: 'error', message: errorMessage(error), file })
     } finally {
@@ -156,7 +156,7 @@ function VerificationContent({ plan, derived }: { plan: ShoppingPlan; derived: b
               <div className="flex flex-1 flex-col">
                 <p className="break-all font-medium">{phase.file.name}</p>
                 <p className="text-sm text-muted">{Math.max(1, Math.round(phase.file.size / 1024))} KB</p>
-                <p className="mt-3 text-sm text-ink-soft">GIMZUP will read the store, date and every line item, then compare them with your plan.</p>
+                <p className="mt-3 text-sm text-ink-soft">GIMZUP will scan product lines and prices, then compare them with your saved shopping plan.</p>
                 <div className="mt-auto flex flex-wrap gap-2 pt-5">
                   <Button onClick={() => run(phase.file)} icon={<ScanLine className="size-4" aria-hidden />}>
                     Verify receipt
@@ -316,11 +316,11 @@ function VerificationContent({ plan, derived }: { plan: ShoppingPlan; derived: b
             className="rounded-panel bg-ink p-6 text-white shadow-lift"
           >
             <p id="verified-title" className="flex items-center gap-2 text-sm font-medium text-brand-400">
-              <BadgeCheck className="size-4" aria-hidden /> Verified Savings
+              <BadgeCheck className="size-4" aria-hidden /> Estimated Savings
             </p>
             <p className="tnum mt-2 text-4xl font-semibold tracking-tight">{money(phase.receipt.verifiedSavings)}</p>
             <p className="mt-2 text-sm text-white/70">
-              Compared with buying the same items at the average price across all five retailers ({money(phase.receipt.baseline)}).
+              Estimated using sample prices from the available retailer catalog ({money(phase.receipt.baseline)}).
             </p>
           </motion.section>
         )}

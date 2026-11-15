@@ -7,7 +7,6 @@ export interface NavItem {
   icon: LucideIcon
 }
 
-/** The MVP journey, in order. Each screen leads to the next. */
 export const APP_NAV: NavItem[] = [
   { to: '/app/basket', label: 'Build Basket', description: 'Pick what you need', icon: ShoppingBasket },
   { to: '/app/report', label: 'Basket Intelligence', description: 'Spot false deals', icon: ScanSearch },

@@ -23,11 +23,11 @@ function isCurrentMonth(iso: string, now: Date): boolean {
 }
 
 /** Combines the demo household history with receipts verified in this session. */
-export function buildDashboard(receipts: Receipt[], now = new Date()): DashboardSummary {
+export function buildDashboard(receipts: Receipt[], now = new Date(), includeDemo = true): DashboardSummary {
   const recent = receipts.filter((r) => isCurrentMonth(r.purchasedAt, now))
-  const monthly = MONTHLY_HISTORY.map((m) => ({ ...m }))
-  const categories = CATEGORY_HISTORY.map((c) => ({ ...c }))
-  const retailers = RETAILER_HISTORY.map((r) => ({ ...r }))
+  const monthly = MONTHLY_HISTORY.map((m) => includeDemo ? { ...m } : { month: m.month, spent: 0, saved: 0, verified: 0 })
+  const categories = CATEGORY_HISTORY.map((c) => includeDemo ? { ...c } : { category: c.category, amount: 0 })
+  const retailers = RETAILER_HISTORY.map((r) => includeDemo ? { ...r } : { storeId: r.storeId, spent: 0, saved: 0, trips: 0 })
   const current = monthly[monthly.length - 1]
 
   for (const r of recent) {
@@ -56,6 +56,6 @@ export function buildDashboard(receipts: Receipt[], now = new Date()): Dashboard
     monthly,
     categories,
     retailers,
-    source: 'demo',
+    source: includeDemo ? 'demo' : 'api',
   }
 }

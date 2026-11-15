@@ -22,7 +22,8 @@
     "react-router-dom": "^7.18.5",
     "recharts": "^3.10.1",
     "sonner": "^2.0.8",
-    "tailwindcss": "^4.3.5"
+    "tailwindcss": "^4.3.5",
+    "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",

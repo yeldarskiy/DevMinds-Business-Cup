@@ -2,7 +2,6 @@ import { motion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { Suspense, useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
-import { API_ENABLED } from '../../services/api'
 import { PageSkeleton } from '../ui/Skeleton'
 import { SidebarContent } from './Sidebar'
 import { Topbar } from './Topbar'
@@ -50,7 +49,7 @@ export function AppShell() {
       )}
 
       <div className="lg:pl-64">
-        {!API_ENABLED && (
+        {(
           <div className="border-b border-line bg-ink px-4 py-2 text-center text-xs text-white/80 sm:px-6">
             Prices, promotions and statistics are a sample dataset for demonstration, not live store data.
           </div>
