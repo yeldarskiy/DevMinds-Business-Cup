@@ -1,9 +1,0 @@
-com/gimzup/service/ProductServiceTest.class
-com/gimzup/service/ReceiptMatcherServiceTest.class
-com/gimzup/service/ReceiptParserServiceTest.class
-com/gimzup/service/ReceiptBasketServiceTest.class
-com/gimzup/service/OfferPricingServiceTest.class
-com/gimzup/ApiIntegrationTest.class
-com/gimzup/service/ReceiptServiceTest.class
-com/gimzup/service/BasketServiceTest.class
-com/gimzup/service/CartOptimizerServiceTest.class
